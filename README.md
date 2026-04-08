@@ -74,7 +74,7 @@ pip install -r requirements.txt
 ### 3. Set Up API Key
 Create a `.env` file in the root directory:
 ```
-pip install -r requirements.txt
+GEMINI_API_KEY=your_api_key_here
 ```
 
 ### 4. Run Experiment
