@@ -4,13 +4,15 @@ import google.generativeai as genai
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+api_key = os.getenv("GEMINI_API_KEY")
+print("Key loaded:", api_key is not None)
+print("Key prefix:", api_key[:6] if api_key else None)
+
+genai.configure(api_key=api_key)
 
 MODEL_NAME = "gemini-2.5-flash-lite"
 
-
 def query_gemini(prompt: str) -> str:
     model = genai.GenerativeModel(MODEL_NAME, generation_config={"temperature": 0.2})
-
     response = model.generate_content(prompt)
     return response.text
