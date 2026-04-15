@@ -1,104 +1,127 @@
 import json
-import os
 import time
 import argparse
+from pathlib import Path
+
 import pandas as pd
 
-from experiment import run_experiment
+from experiment import run_dyadic, run_claire
 
-DATA_PATH = "data/cases.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent
+CONTEXTS_PATH = BASE_DIR / "data" / "contexts.csv"
 
 
 def main():
-    # -----------------------------
-    # Parse batch arguments
-    # -----------------------------
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start", type=int, default=0, help="Start index of batch")
-    parser.add_argument("--size", type=int, default=5, help="Batch size")
+    parser.add_argument(
+        "--input",
+        type=str,
+        required=True,
+        help="Patient input message to evaluate"
+    )
+    parser.add_argument(
+        "--prompt_type",
+        type=str,
+        default="manual",
+        help="Optional label such as clear, subtle, neutral, or manual"
+    )
+    parser.add_argument(
+        "--results_subdir",
+        type=str,
+        default="cases_define",
+        help="Subfolder inside results/ where outputs will be saved"
+    )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default="manual_run",
+        help="Tag used in output filenames"
+    )
+    parser.add_argument(
+        "--sleep",
+        type=int,
+        default=7,
+        help="Seconds to wait between API calls"
+    )
     args = parser.parse_args()
 
-    start = args.start
-    size = args.size
+    patient_input = args.input.strip()
+    prompt_type = args.prompt_type.strip().lower()
 
-    # -----------------------------
-    # Load data
-    # -----------------------------
-    df = pd.read_csv(DATA_PATH)
-    df = df.iloc[start:start + size]
+    contexts_df = pd.read_csv(CONTEXTS_PATH)
 
-    # -----------------------------
-    # Output paths
-    # -----------------------------
-    os.makedirs("results", exist_ok=True)
+    results_dir = BASE_DIR / "results" / args.results_subdir
+    results_dir.mkdir(parents=True, exist_ok=True)
 
-    output_path = f"results/outputs_batch_{start}_{start + size - 1}.json"
-    paired_output_path = f"results/paired_outputs_batch_{start}_{start + size - 1}.csv"
+    output_json_path = results_dir / f"{args.tag}_outputs.json"
+    output_csv_path = results_dir / f"{args.tag}_outputs.csv"
+    paired_csv_path = results_dir / f"{args.tag}_paired_outputs.csv"
 
-    results = []
-    paired_rows = []
+    all_results = []
+    paired_row = {
+        "prompt_type": prompt_type,
+        "patient_input": patient_input,
+        "dyadic_output": "",
+    }
 
-    print(f"Running batch from {start} to {start + size - 1}")
+    print("Running manual input experiment")
+    print(f"Patient input: {patient_input}")
 
-    # -----------------------------
-    # Main loop
-    # -----------------------------
-    for _, row in df.iterrows():
-        case_id = int(row["id"])
-        prompt_type = str(row["prompt_type"]).strip().lower()
-        patient_input = str(row["patient_input"]).strip()
+    # 1) Dyadic
+    print("\n→ Running dyadic...")
+    dyadic_output, dyadic_prompt = run_dyadic(patient_input)
 
-        print(f"\nProcessing case {case_id} ({prompt_type})")
+    all_results.append({
+        "prompt_type": prompt_type,
+        "run_type": "dyadic",
+        "context_id": "",
+        "context_type": "",
+        "context_text": "",
+        "patient_input": patient_input,
+        "model_output": dyadic_output,
+        "prompt_used": dyadic_prompt,
+    })
 
-        case_outputs = {}
+    paired_row["dyadic_output"] = dyadic_output
+    time.sleep(args.sleep)
 
-        # Alternate order to reduce bias
-        conditions = ["dyadic", "claire"] if case_id % 2 == 1 else ["claire", "dyadic"]
+    # 2) CLAIRE with 6 contexts
+    for _, context_row in contexts_df.iterrows():
+        context_id = int(context_row["id"])
+        context_type = str(context_row["context_type"]).strip().lower()
+        context_text = str(context_row["context_text"]).strip()
 
-        for condition in conditions:
-            print(f"  → Running {condition}...")
+        print(f"→ Running claire context {context_id} ({context_type})...")
 
-            output, prompt = run_experiment(
-                patient_input=patient_input,
-                condition=condition
-            )
+        claire_output, claire_prompt = run_claire(
+            patient_input=patient_input,
+            clinician_context=context_text,
+        )
 
-            results.append({
-                "id": case_id,
-                "prompt_type": prompt_type,
-                "condition": condition,
-                "patient_input": patient_input,
-                "model_output": output,
-                "prompt_used": prompt,
-            })
-
-            case_outputs[condition] = output
-
-            # -----------------------------
-            # Rate limiting (VERY IMPORTANT)
-            # -----------------------------
-            time.sleep(7)
-
-        # Save paired comparison
-        paired_rows.append({
-            "id": case_id,
+        all_results.append({
             "prompt_type": prompt_type,
+            "run_type": "claire",
+            "context_id": context_id,
+            "context_type": context_type,
+            "context_text": context_text,
             "patient_input": patient_input,
-            "dyadic_output": case_outputs.get("dyadic", ""),
-            "claire_output": case_outputs.get("claire", ""),
+            "model_output": claire_output,
+            "prompt_used": claire_prompt,
         })
 
-    # -----------------------------
-    # Save results
-    # -----------------------------
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+        paired_row[f"claire_context_{context_id}_output"] = claire_output
+        time.sleep(args.sleep)
 
-    pd.DataFrame(paired_rows).to_csv(paired_output_path, index=False)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump(all_results, f, indent=2, ensure_ascii=False)
 
-    print("\n Batch completed!")
-    print(f"Saved JSON → {output_path}")
-    print(f"Saved CSV  → {paired_output_path}")
+    pd.DataFrame(all_results).to_csv(output_csv_path, index=False)
+    pd.DataFrame([paired_row]).to_csv(paired_csv_path, index=False)
+
+    print("\n Experiment completed!")
+    print(f"Saved JSON → {output_json_path}")
+    print(f"Saved flat CSV → {output_csv_path}")
+    print(f"Saved paired CSV → {paired_csv_path}")
 
 
 if __name__ == "__main__":
