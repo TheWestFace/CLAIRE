@@ -78,6 +78,7 @@ This isolates the effect of clinician guidance on model behavior.
 ---
 
 ## Repository Structure
+```
 CLAIRE/
 ├── src/
 │ ├── gemini_client.py # Handles LLM API calls
@@ -94,13 +95,34 @@ CLAIRE/
 ├── .gitignore
 ├── requirements.txt
 └── README.md
+```
 
 ---
 
 ## Getting Started
 
 ### 1. Create Environment
-
-```bash
+```
 conda create -n claire-ai python=3.10
 conda activate claire-ai
+```
+
+### 2. Install Dependencies
+```
+pip install -r requirements.txt
+```
+
+### 3. Set Up API Key
+Create a `.env` file in the root directory:
+```
+GEMINI_API_KEY=your_api_key_here
+```
+
+### 4. Run Experiment
+```
+python src/main.py
+```
+After execution, results will be saved to:
+```
+results/outputs.json
+```
