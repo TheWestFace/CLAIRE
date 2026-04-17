@@ -2,11 +2,13 @@
   <h1><b> CLAIRE </b></h1>
 </div>
 
-# CLAIRE
+📄 **Paper:** [Position: AI in Mental Health Care Should Support, Not Replace, Clinicians](https://github.com/TheWestFace/CLAIRE/blob/main/paper.pdf)
 
 ## Overview
 
-CLAIRE (Clinician-Led AI for Relational Ethics) is a Python-based experimental framework for studying how clinician-provided context influences large language model (LLM) responses in safety-critical mental health scenarios.
+**CLAIRE (Clinician-Led AI for Relational Ethics)** is a conceptual framework introduced in the paper *“Position: AI in Mental Health Care Should Support, Not Replace, Clinicians.”* The framework advocates for a **triadic patient–clinician–AI relationship**, where the clinician remains the primary agent of care and AI operates as a clinician-supervised tool designed to support—rather than replace—the foundational patient–clinician therapeutic relationship, with a focus on risk mitigation.
+
+This repository provides the **official experimental implementation of the CLAIRE framework**, enabling empirical evaluation of how clinician involvement influences large language model (LLM) behavior in safety-critical mental health scenarios.
 
 The system simulates patient–AI interactions under two conditions:
 
@@ -19,9 +21,10 @@ The goal is to evaluate whether clinician-provided context improves response cal
 
 ## Research Objective
 
-This project evaluates the hypothesis:
+This project evaluates the following hypothesis:
 
-> LLMs operating under clinician-informed (CLAIRE) settings produce more appropriate intervention and escalation decisions than LLMs operating in dyadic (patient-only) settings.
+> **LLMs operating under clinician-informed (CLAIRE) settings produce more appropriate, context-aware, and safety-aligned intervention and escalation decisions than LLMs operating in dyadic (without clinician) settings.**
+
 
 ---
 
