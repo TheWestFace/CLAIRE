@@ -93,8 +93,9 @@ CLAIRE/
 │
 ├── .env # API key (not committed)
 ├── .gitignore
-├── requirements.txt
 └── README.md
+├── paper.pdf  # full paper
+└── requirements.txt
 ```
 
 ---
